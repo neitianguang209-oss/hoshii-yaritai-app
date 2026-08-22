@@ -72,6 +72,14 @@ export function DailyStockView() {
     setItems((prev) => (prev ? prev.filter((i) => i.id !== id) : prev));
   }
 
+  function selectGenreTag(tag) {
+    setActiveFilter(tag);
+    if (tag !== 'すべて') {
+      setGenreTag(tag);
+      setShowCustom(false);
+    }
+  }
+
   function startEdit(item) {
     setEditingId(item.id);
     setEditName(item.name);
@@ -102,7 +110,10 @@ export function DailyStockView() {
     return html`<div class="loading-hint">読み込み中…</div>`;
   }
 
-  const tags = ['すべて', ...Array.from(new Set(items.map((i) => i.genre_tag)))];
+  const rowTags = [
+    ...PRESET_TAGS,
+    ...Array.from(new Set(items.map((i) => i.genre_tag))).filter((t) => !PRESET_TAGS.includes(t)),
+  ];
   const filtered = activeFilter === 'すべて' ? items : items.filter((i) => i.genre_tag === activeFilter);
 
   const groups =
@@ -125,52 +136,43 @@ export function DailyStockView() {
           />
           <button class="add-form__submit" type="submit" disabled=${saving || !name.trim()}>追加</button>
         </div>
-        <div class="chip-row">
-          ${PRESET_TAGS.map(
-            (tag) => html`
-              <button
-                key=${tag}
-                type="button"
-                class=${`chip${!showCustom && genreTag === tag ? ' is-selected' : ''}`}
-                onClick=${() => {
-                  setShowCustom(false);
-                  setGenreTag(tag);
-                }}
-              >${tag}</button>
-            `
-          )}
-          <button
-            type="button"
-            class=${`chip${showCustom ? ' is-selected' : ''}`}
-            onClick=${() => setShowCustom(true)}
-          >＋自由入力</button>
-        </div>
-        ${showCustom &&
-        html`<input
-          type="text"
-          placeholder="ジャンルを入力(例: 化粧品)"
-          value=${customTag}
-          onInput=${(e) => setCustomTag(e.target.value)}
-        />`}
       </form>
 
-      ${items.length > 0 &&
-      html`
-        <div class="chip-row" style=${{ marginBottom: '14px' }}>
-          ${tags.map(
-            (tag) => html`
-              <button
-                key=${tag}
-                class=${`chip${activeFilter === tag ? ' is-selected' : ''}`}
-                onClick=${() => setActiveFilter(tag)}
-              >${tag}</button>
-            `
-          )}
-        </div>
-      `}
+      <div class="chip-row" style=${{ marginBottom: '8px' }}>
+        <button
+          type="button"
+          class=${`chip${activeFilter === 'すべて' ? ' is-selected' : ''}`}
+          onClick=${() => selectGenreTag('すべて')}
+        >すべて</button>
+        ${rowTags.map(
+          (tag) => html`
+            <button
+              key=${tag}
+              type="button"
+              class=${`chip${!showCustom && activeFilter === tag ? ' is-selected' : ''}`}
+              onClick=${() => selectGenreTag(tag)}
+            >${tag}</button>
+          `
+        )}
+        <button
+          type="button"
+          class=${`chip${showCustom ? ' is-selected' : ''}`}
+          onClick=${() => setShowCustom(true)}
+        >＋自由入力</button>
+      </div>
+      ${showCustom &&
+      html`<input
+        type="text"
+        placeholder="ジャンルを入力(例: 化粧品)"
+        value=${customTag}
+        onInput=${(e) => setCustomTag(e.target.value)}
+        style=${{ marginBottom: '14px' }}
+      />`}
 
       ${items.length === 0
         ? html`<div class="empty-hint">まだ何も登録されていません。</div>`
+        : filtered.length === 0
+        ? html`<div class="empty-hint">該当するアイテムはありません。</div>`
         : groups.map(
             (group) => html`
               <div key=${group.tag}>
