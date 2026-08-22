@@ -11,10 +11,10 @@ export async function listDailyStockItems() {
   return data;
 }
 
-export async function addDailyStockItem(name, placeTag) {
+export async function addDailyStockItem(name, genreTag) {
   const { error } = await supabase
     .from("daily_stock_items")
-    .insert({ name, place_tag: placeTag });
+    .insert({ name, genre_tag: genreTag });
   if (error) throw error;
 }
 

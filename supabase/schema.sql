@@ -11,10 +11,11 @@
 create extension if not exists pgcrypto;
 
 -- ---- 1. 欲しいもの > 日用品ストック ----
+-- genre_tag はジャンル分類(食材/日用品など)。プリセット以外も自由入力で追加できる想定。
 create table if not exists daily_stock_items (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  place_tag text not null,
+  genre_tag text not null,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );

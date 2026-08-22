@@ -4,7 +4,7 @@ import { listDailyStockItems, addDailyStockItem, archiveDailyStockItem } from '.
 
 const html = htm.bind(React.createElement);
 
-const PRESET_TAGS = ['スーパー', 'ドンキ', 'ドラッグストア', 'コンビニ', 'ホームセンター'];
+const PRESET_TAGS = ['食材', '日用品'];
 
 const CheckIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="4 12 9 17 20 6" />
@@ -13,7 +13,7 @@ const CheckIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 export function DailyStockView() {
   const [items, setItems] = useState(null);
   const [name, setName] = useState('');
-  const [placeTag, setPlaceTag] = useState(PRESET_TAGS[0]);
+  const [genreTag, setGenreTag] = useState(PRESET_TAGS[0]);
   const [customTag, setCustomTag] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const [activeFilter, setActiveFilter] = useState('すべて');
@@ -34,7 +34,7 @@ export function DailyStockView() {
   async function handleAdd(e) {
     e.preventDefault();
     const trimmed = name.trim();
-    const tag = (showCustom ? customTag : placeTag).trim();
+    const tag = (showCustom ? customTag : genreTag).trim();
     if (!trimmed || !tag || saving) return;
     setSaving(true);
     try {
@@ -56,14 +56,14 @@ export function DailyStockView() {
     return html`<div class="loading-hint">読み込み中…</div>`;
   }
 
-  const tags = ['すべて', ...Array.from(new Set(items.map((i) => i.place_tag)))];
-  const filtered = activeFilter === 'すべて' ? items : items.filter((i) => i.place_tag === activeFilter);
+  const tags = ['すべて', ...Array.from(new Set(items.map((i) => i.genre_tag)))];
+  const filtered = activeFilter === 'すべて' ? items : items.filter((i) => i.genre_tag === activeFilter);
 
   const groups =
     activeFilter === 'すべて'
-      ? Array.from(new Set(items.map((i) => i.place_tag))).map((tag) => ({
+      ? Array.from(new Set(items.map((i) => i.genre_tag))).map((tag) => ({
           tag,
-          rows: items.filter((i) => i.place_tag === tag),
+          rows: items.filter((i) => i.genre_tag === tag),
         }))
       : [{ tag: activeFilter, rows: filtered }];
 
@@ -85,10 +85,10 @@ export function DailyStockView() {
               <button
                 key=${tag}
                 type="button"
-                class=${`chip${!showCustom && placeTag === tag ? ' is-selected' : ''}`}
+                class=${`chip${!showCustom && genreTag === tag ? ' is-selected' : ''}`}
                 onClick=${() => {
                   setShowCustom(false);
-                  setPlaceTag(tag);
+                  setGenreTag(tag);
                 }}
               >${tag}</button>
             `
@@ -102,7 +102,7 @@ export function DailyStockView() {
         ${showCustom &&
         html`<input
           type="text"
-          placeholder="場所タグを入力"
+          placeholder="ジャンルを入力(例: 化粧品)"
           value=${customTag}
           onInput=${(e) => setCustomTag(e.target.value)}
         />`}
