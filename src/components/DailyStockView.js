@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import htm from 'htm';
-import { listDailyStockItems, addDailyStockItem, archiveDailyStockItem } from '../lib/api.js';
+import { listDailyStockItems, addDailyStockItem, archiveDailyStockItem, updateDailyStockItem } from '../lib/api.js';
 
 const html = htm.bind(React.createElement);
 
@@ -10,6 +10,15 @@ const CheckIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
   <polyline points="4 12 9 17 20 6" />
 </svg>`;
 
+const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 20h9" />
+  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+</svg>`;
+
+function tagOptions(currentTag) {
+  return currentTag && !PRESET_TAGS.includes(currentTag) ? [...PRESET_TAGS, currentTag] : PRESET_TAGS;
+}
+
 export function DailyStockView() {
   const [items, setItems] = useState(null);
   const [name, setName] = useState('');
@@ -18,6 +27,9 @@ export function DailyStockView() {
   const [showCustom, setShowCustom] = useState(false);
   const [activeFilter, setActiveFilter] = useState('すべて');
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editTag, setEditTag] = useState('');
 
   async function refresh() {
     const data = await listDailyStockItems();
@@ -50,6 +62,25 @@ export function DailyStockView() {
   async function handleCheck(id) {
     await archiveDailyStockItem(id);
     setItems((prev) => (prev ? prev.filter((i) => i.id !== id) : prev));
+  }
+
+  function startEdit(item) {
+    setEditingId(item.id);
+    setEditName(item.name);
+    setEditTag(item.genre_tag);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(id) {
+    const trimmed = editName.trim();
+    const tag = editTag.trim();
+    if (!trimmed || !tag) return;
+    await updateDailyStockItem(id, trimmed, tag);
+    setEditingId(null);
+    await refresh();
   }
 
   if (items === null) {
@@ -131,16 +162,48 @@ export function DailyStockView() {
                 ${activeFilter === 'すべて' && html`<div class="group-heading">${group.tag}</div>`}
                 <div class="item-list">
                   ${group.rows.map(
-                    (item) => html`
-                      <div key=${item.id} class="item-row">
-                        <button class="check-btn" onClick=${() => handleCheck(item.id)} aria-label="買った">
-                          ${CheckIcon}
-                        </button>
-                        <div class="item-row__main">
-                          <div class="item-row__name">${item.name}</div>
-                        </div>
-                      </div>
-                    `
+                    (item) =>
+                      editingId === item.id
+                        ? html`
+                            <div key=${item.id} class="item-row item-row--stack">
+                              <div class="edit-form">
+                                <input
+                                  type="text"
+                                  value=${editName}
+                                  onInput=${(e) => setEditName(e.target.value)}
+                                />
+                                <div class="chip-row">
+                                  ${tagOptions(item.genre_tag).map(
+                                    (tag) => html`
+                                      <button
+                                        key=${tag}
+                                        type="button"
+                                        class=${`chip${editTag === tag ? ' is-selected' : ''}`}
+                                        onClick=${() => setEditTag(tag)}
+                                      >${tag}</button>
+                                    `
+                                  )}
+                                </div>
+                                <div class="edit-actions">
+                                  <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
+                                  <button class="edit-actions__save" onClick=${() => saveEdit(item.id)}>保存</button>
+                                </div>
+                              </div>
+                            </div>
+                          `
+                        : html`
+                            <div key=${item.id} class="item-row">
+                              <button class="check-btn" onClick=${() => handleCheck(item.id)} aria-label="買った">
+                                ${CheckIcon}
+                              </button>
+                              <div class="item-row__main">
+                                <div class="item-row__name">${item.name}</div>
+                              </div>
+                              <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
+                                ${EditIcon}
+                              </button>
+                            </div>
+                          `
                   )}
                 </div>
               </div>

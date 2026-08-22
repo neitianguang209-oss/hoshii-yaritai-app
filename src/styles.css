@@ -236,6 +236,43 @@ input, textarea, select {
   align-items: stretch;
 }
 
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-form input[type="text"],
+.edit-form input[type="number"] {
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 15px;
+  background: var(--bg);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.edit-actions button {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.edit-actions__save {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+.edit-actions__cancel {
+  color: var(--text-sub);
+}
+
 .item-row__main {
   flex: 1;
   min-width: 0;

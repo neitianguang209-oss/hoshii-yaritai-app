@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import htm from 'htm';
-import { listWishItems, addWishItem, archiveWishItem } from '../lib/api.js';
+import { listWishItems, addWishItem, archiveWishItem, updateWishItem } from '../lib/api.js';
 import { formatBudget } from '../lib/format.js';
 
 const html = htm.bind(React.createElement);
 
 const CheckIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="4 12 9 17 20 6" />
+</svg>`;
+
+const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 20h9" />
+  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
 </svg>`;
 
 const DECISION_LABEL = { instant: '即決型', encounter: '出会い待ち型' };
@@ -19,6 +24,10 @@ export function WishListView() {
   const [decisionType, setDecisionType] = useState('instant');
   const [budget, setBudget] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDecisionType, setEditDecisionType] = useState('instant');
+  const [editBudget, setEditBudget] = useState('');
 
   async function refresh() {
     const data = await listWishItems();
@@ -68,6 +77,26 @@ export function WishListView() {
       const all = await listWishItems({ includeArchived: true });
       setArchivedItems(all.filter((i) => !i.is_active));
     }
+  }
+
+  function startEdit(item) {
+    setEditingId(item.id);
+    setEditName(item.name);
+    setEditDecisionType(item.decision_type);
+    setEditBudget(item.budget_amount === null ? '' : String(item.budget_amount));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(id) {
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    const budgetAmount = editBudget.trim() === '' ? null : Number(editBudget);
+    await updateWishItem(id, trimmed, editDecisionType, budgetAmount);
+    setEditingId(null);
+    await refresh();
   }
 
   if (activeItems === null) {
@@ -122,18 +151,57 @@ export function WishListView() {
                   <div class="group-heading">${group.label}</div>
                   <div class="item-list">
                     ${group.rows.map(
-                      (item) => html`
-                        <div key=${item.id} class="item-row">
-                          <button class="check-btn" onClick=${() => handleToggleActive(item.id, false)} aria-label="手に入れた">
-                            ${CheckIcon}
-                          </button>
-                          <div class="item-row__main">
-                            <div class="item-row__name">${item.name}</div>
-                            ${item.budget_amount !== null &&
-                            html`<div class="item-row__budget">${formatBudget(item.budget_amount)}</div>`}
-                          </div>
-                        </div>
-                      `
+                      (item) =>
+                        editingId === item.id
+                          ? html`
+                              <div key=${item.id} class="item-row item-row--stack">
+                                <div class="edit-form">
+                                  <input
+                                    type="text"
+                                    value=${editName}
+                                    onInput=${(e) => setEditName(e.target.value)}
+                                  />
+                                  <div class="toggle-row">
+                                    <button
+                                      type="button"
+                                      class=${`chip${editDecisionType === 'instant' ? ' is-selected' : ''}`}
+                                      onClick=${() => setEditDecisionType('instant')}
+                                    >即決型</button>
+                                    <button
+                                      type="button"
+                                      class=${`chip${editDecisionType === 'encounter' ? ' is-selected' : ''}`}
+                                      onClick=${() => setEditDecisionType('encounter')}
+                                    >出会い待ち型</button>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    placeholder="金額(任意)"
+                                    value=${editBudget}
+                                    onInput=${(e) => setEditBudget(e.target.value)}
+                                    min="0"
+                                  />
+                                  <div class="edit-actions">
+                                    <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
+                                    <button class="edit-actions__save" onClick=${() => saveEdit(item.id)}>保存</button>
+                                  </div>
+                                </div>
+                              </div>
+                            `
+                          : html`
+                              <div key=${item.id} class="item-row">
+                                <button class="check-btn" onClick=${() => handleToggleActive(item.id, false)} aria-label="手に入れた">
+                                  ${CheckIcon}
+                                </button>
+                                <div class="item-row__main">
+                                  <div class="item-row__name">${item.name}</div>
+                                  ${item.budget_amount !== null &&
+                                  html`<div class="item-row__budget">${formatBudget(item.budget_amount)}</div>`}
+                                </div>
+                                <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
+                                  ${EditIcon}
+                                </button>
+                              </div>
+                            `
                     )}
                   </div>
                 </div>

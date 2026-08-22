@@ -26,6 +26,14 @@ export async function archiveDailyStockItem(id) {
   if (error) throw error;
 }
 
+export async function updateDailyStockItem(id, name, genreTag) {
+  const { error } = await supabase
+    .from("daily_stock_items")
+    .update({ name, genre_tag: genreTag })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // ---- 欲しいものリスト ----
 export async function listWishItems({ includeArchived = false } = {}) {
   let query = supabase.from("wish_items").select("*").order("created_at", { ascending: true });
@@ -52,6 +60,14 @@ export async function archiveWishItem(id, isActive) {
   if (error) throw error;
 }
 
+export async function updateWishItem(id, name, decisionType, budgetAmount) {
+  const { error } = await supabase
+    .from("wish_items")
+    .update({ name, decision_type: decisionType, budget_amount: budgetAmount ?? null })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // ---- 効率化したいこと ----
 export async function listEfficiencyTasks() {
   const { data, error } = await supabase
@@ -71,5 +87,10 @@ export async function updateEfficiencyStatus(id, status) {
   const patch = { status };
   patch.completed_at = status === "done" ? new Date().toISOString() : null;
   const { error } = await supabase.from("efficiency_tasks").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateEfficiencyTask(id, title, priority) {
+  const { error } = await supabase.from("efficiency_tasks").update({ title, priority }).eq("id", id);
   if (error) throw error;
 }

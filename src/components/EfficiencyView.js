@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import htm from 'htm';
-import { listEfficiencyTasks, addEfficiencyTask, updateEfficiencyStatus } from '../lib/api.js';
+import { listEfficiencyTasks, addEfficiencyTask, updateEfficiencyStatus, updateEfficiencyTask } from '../lib/api.js';
 import { isWithinCurrentWeek } from '../lib/format.js';
 
 const html = htm.bind(React.createElement);
@@ -9,11 +9,19 @@ const PRIORITY_LABEL = { high: '高', mid: '中', low: '低' };
 const STATUS_LABEL = { not_started: '未着手', in_progress: '進行中', done: '完了' };
 const STATUS_ORDER = ['not_started', 'in_progress', 'done'];
 
+const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 20h9" />
+  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+</svg>`;
+
 export function EfficiencyView() {
   const [tasks, setTasks] = useState(null);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState('mid');
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editPriority, setEditPriority] = useState('mid');
 
   async function refresh() {
     const data = await listEfficiencyTasks();
@@ -45,6 +53,24 @@ export function EfficiencyView() {
   async function handleStatusChange(id, status) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status, completed_at: status === 'done' ? new Date().toISOString() : null } : t)));
     await updateEfficiencyStatus(id, status);
+    await refresh();
+  }
+
+  function startEdit(task) {
+    setEditingId(task.id);
+    setEditTitle(task.title);
+    setEditPriority(task.priority);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(id) {
+    const trimmed = editTitle.trim();
+    if (!trimmed) return;
+    await updateEfficiencyTask(id, trimmed, editPriority);
+    setEditingId(null);
     await refresh();
   }
 
@@ -101,27 +127,61 @@ export function EfficiencyView() {
                   <div class="group-heading">${group.label}(${group.rows.length})</div>
                   <div class="item-list">
                     ${group.rows.map(
-                      (task) => html`
-                        <div key=${task.id} class=${`item-row item-row--stack${task.status === 'done' ? ' is-done' : ''}`}>
-                          <div class="item-row__main">
-                            <div class=${`item-row__name${task.status === 'done' ? ' is-struck' : ''}`}>${task.title}</div>
-                            <div class="item-row__meta">
-                              <span class=${`badge priority-${task.priority}`}>重要度 ${PRIORITY_LABEL[task.priority]}</span>
-                            </div>
-                          </div>
-                          <div class="status-select">
-                            ${STATUS_ORDER.map(
-                              (s) => html`
-                                <button
-                                  key=${s}
-                                  class=${`chip${task.status === s ? ' is-selected' : ''}`}
-                                  onClick=${() => handleStatusChange(task.id, s)}
-                                >${STATUS_LABEL[s]}</button>
-                              `
-                            )}
-                          </div>
-                        </div>
-                      `
+                      (task) =>
+                        editingId === task.id
+                          ? html`
+                              <div key=${task.id} class="item-row item-row--stack">
+                                <div class="edit-form">
+                                  <input
+                                    type="text"
+                                    value=${editTitle}
+                                    onInput=${(e) => setEditTitle(e.target.value)}
+                                  />
+                                  <div class="toggle-row">
+                                    ${['high', 'mid', 'low'].map(
+                                      (p) => html`
+                                        <button
+                                          key=${p}
+                                          type="button"
+                                          class=${`chip${editPriority === p ? ' is-selected' : ''}`}
+                                          onClick=${() => setEditPriority(p)}
+                                        >重要度: ${PRIORITY_LABEL[p]}</button>
+                                      `
+                                    )}
+                                  </div>
+                                  <div class="edit-actions">
+                                    <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
+                                    <button class="edit-actions__save" onClick=${() => saveEdit(task.id)}>保存</button>
+                                  </div>
+                                </div>
+                              </div>
+                            `
+                          : html`
+                              <div key=${task.id} class=${`item-row item-row--stack${task.status === 'done' ? ' is-done' : ''}`}>
+                                <div class="item-row__main" style=${{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                                  <div>
+                                    <div class=${`item-row__name${task.status === 'done' ? ' is-struck' : ''}`}>${task.title}</div>
+                                    <div class="item-row__meta">
+                                      <span class=${`badge priority-${task.priority}`}>重要度 ${PRIORITY_LABEL[task.priority]}</span>
+                                    </div>
+                                  </div>
+                                  <button class="icon-btn" onClick=${() => startEdit(task)} aria-label="編集">
+                                    ${EditIcon}
+                                  </button>
+                                </div>
+                                <div class="status-select">
+                                  ${STATUS_ORDER.map(
+                                    (s) => html`
+                                      <button
+                                        key=${s}
+                                        class=${`chip${task.status === s ? ' is-selected' : ''}`}
+                                        onClick=${() => handleStatusChange(task.id, s)}
+                                      >${STATUS_LABEL[s]}</button>
+                                    `
+                                  )}
+                                </div>
+                              </div>
+                            `
                     )}
                   </div>
                 </div>
