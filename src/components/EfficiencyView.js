@@ -23,15 +23,22 @@ const TrashIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
   <path d="M14 11v6" />
 </svg>`;
 
+const ChevronIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="6 9 12 15 18 9" />
+</svg>`;
+
 export function EfficiencyView() {
   const [tasks, setTasks] = useState(null);
   const [title, setTitle] = useState('');
+  const [detail, setDetail] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editPriority, setEditPriority] = useState('mid');
+  const [editDetail, setEditDetail] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   async function refresh() {
     const data = await listEfficiencyTasks();
@@ -51,8 +58,9 @@ export function EfficiencyView() {
     if (!trimmed || saving) return;
     setSaving(true);
     try {
-      await addEfficiencyTask(trimmed, 'mid');
+      await addEfficiencyTask(trimmed, 'mid', detail.trim());
       setTitle('');
+      setDetail('');
       await refresh();
     } finally {
       setSaving(false);
@@ -70,10 +78,20 @@ export function EfficiencyView() {
     setPriorityFilter('all');
   }
 
+  function toggleExpanded(id) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function startEdit(task) {
     setEditingId(task.id);
     setEditTitle(task.title);
     setEditPriority(task.priority);
+    setEditDetail(task.detail || '');
   }
 
   function cancelEdit() {
@@ -83,7 +101,7 @@ export function EfficiencyView() {
   async function saveEdit(id) {
     const trimmed = editTitle.trim();
     if (!trimmed) return;
-    await updateEfficiencyTask(id, trimmed, editPriority);
+    await updateEfficiencyTask(id, trimmed, editPriority, editDetail.trim());
     setEditingId(null);
     await refresh();
   }
@@ -127,6 +145,12 @@ export function EfficiencyView() {
           />
           <button class="add-form__submit" type="submit" disabled=${saving || !title.trim()}>追加</button>
         </div>
+        <textarea
+          placeholder="詳細(任意)"
+          value=${detail}
+          onInput=${(e) => setDetail(e.target.value)}
+          rows="2"
+        ></textarea>
       </form>
 
       ${tasks.length > 0 &&
@@ -180,6 +204,12 @@ export function EfficiencyView() {
                               value=${editTitle}
                               onInput=${(e) => setEditTitle(e.target.value)}
                             />
+                            <textarea
+                              placeholder="詳細(任意)"
+                              value=${editDetail}
+                              onInput=${(e) => setEditDetail(e.target.value)}
+                              rows="3"
+                            ></textarea>
                             <div class="toggle-row">
                               ${PRIORITY_ORDER.map(
                                 (p) => html`
@@ -221,6 +251,15 @@ export function EfficiencyView() {
                               </button>
                             </div>
                           </div>
+                          ${task.detail &&
+                          html`
+                            <button class="detail-toggle" onClick=${() => toggleExpanded(task.id)}>
+                              <span class=${`detail-toggle__icon${expandedIds.has(task.id) ? ' is-open' : ''}`}>${ChevronIcon}</span>
+                              ${expandedIds.has(task.id) ? '詳細を閉じる' : '詳細を見る'}
+                            </button>
+                          `}
+                          ${task.detail && expandedIds.has(task.id) &&
+                          html`<div class="item-row__detail">${task.detail}</div>`}
                           <div class="status-select">
                             ${STATUS_ORDER.map(
                               (s) => html`

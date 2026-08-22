@@ -88,8 +88,8 @@ export async function listEfficiencyTasks() {
   return data;
 }
 
-export async function addEfficiencyTask(title, priority) {
-  const { error } = await supabase.from("efficiency_tasks").insert({ title, priority });
+export async function addEfficiencyTask(title, priority, detail) {
+  const { error } = await supabase.from("efficiency_tasks").insert({ title, priority, detail: detail || null });
   if (error) throw error;
 }
 
@@ -100,8 +100,11 @@ export async function updateEfficiencyStatus(id, status) {
   if (error) throw error;
 }
 
-export async function updateEfficiencyTask(id, title, priority) {
-  const { error } = await supabase.from("efficiency_tasks").update({ title, priority }).eq("id", id);
+export async function updateEfficiencyTask(id, title, priority, detail) {
+  const { error } = await supabase
+    .from("efficiency_tasks")
+    .update({ title, priority, detail: detail || null })
+    .eq("id", id);
   if (error) throw error;
 }
 

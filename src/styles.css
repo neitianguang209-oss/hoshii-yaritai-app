@@ -152,6 +152,18 @@ input, textarea, select {
   background: var(--bg);
 }
 
+.add-form textarea,
+.edit-form textarea {
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: var(--bg);
+  font-family: inherit;
+  resize: vertical;
+  min-height: 44px;
+}
+
 .add-form__submit {
   background: var(--accent);
   color: #FFFFFF;
@@ -373,6 +385,41 @@ input, textarea, select {
 .check-btn svg {
   width: 15px;
   height: 15px;
+}
+
+.detail-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--text-sub);
+  padding: 2px 0;
+}
+
+.detail-toggle__icon {
+  display: flex;
+  transition: transform 0.15s ease;
+}
+
+.detail-toggle__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.detail-toggle__icon.is-open {
+  transform: rotate(180deg);
+}
+
+.item-row__detail {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sub);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .status-select {
