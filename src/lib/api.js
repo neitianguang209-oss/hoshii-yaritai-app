@@ -48,11 +48,11 @@ export async function listWishItems({ includeArchived = false } = {}) {
   return data;
 }
 
-export async function addWishItem(name, decisionType, budgetAmount) {
+export async function addWishItem(name, budgetAmount, productUrl) {
   const { error } = await supabase.from("wish_items").insert({
     name,
-    decision_type: decisionType,
     budget_amount: budgetAmount ?? null,
+    product_url: productUrl || null,
   });
   if (error) throw error;
 }
@@ -65,10 +65,10 @@ export async function archiveWishItem(id, isActive) {
   if (error) throw error;
 }
 
-export async function updateWishItem(id, name, decisionType, budgetAmount) {
+export async function updateWishItem(id, name, budgetAmount, productUrl) {
   const { error } = await supabase
     .from("wish_items")
-    .update({ name, decision_type: decisionType, budget_amount: budgetAmount ?? null })
+    .update({ name, budget_amount: budgetAmount ?? null, product_url: productUrl || null })
     .eq("id", id);
   if (error) throw error;
 }

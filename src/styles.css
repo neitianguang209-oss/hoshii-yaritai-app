@@ -141,7 +141,8 @@ input, textarea, select {
 }
 
 .add-form input[type="text"],
-.add-form input[type="number"] {
+.add-form input[type="number"],
+.add-form input[type="url"] {
   flex: 1;
   min-width: 0;
   border: 1px solid var(--divider);
@@ -243,7 +244,8 @@ input, textarea, select {
 }
 
 .edit-form input[type="text"],
-.edit-form input[type="number"] {
+.edit-form input[type="number"],
+.edit-form input[type="url"] {
   border: 1px solid var(--divider);
   border-radius: 10px;
   padding: 8px 10px;

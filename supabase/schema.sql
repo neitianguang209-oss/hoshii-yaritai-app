@@ -21,11 +21,13 @@ create table if not exists daily_stock_items (
 );
 
 -- ---- 2. 欲しいもの > 欲しいものリスト ----
+-- decision_type(即決/出会い待ち)は2026-08-22に廃止(分ける必要なしとの判断)。
+-- product_urlは具体的な商品ページへのリンク(任意)。
 create table if not exists wish_items (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  decision_type text not null check (decision_type in ('instant', 'encounter')),
   budget_amount integer check (budget_amount is null or budget_amount >= 0),
+  product_url text,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );

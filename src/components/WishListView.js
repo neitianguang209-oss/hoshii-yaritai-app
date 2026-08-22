@@ -22,20 +22,24 @@ const TrashIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
   <path d="M14 11v6" />
 </svg>`;
 
-const DECISION_LABEL = { instant: '即決型', encounter: '出会い待ち型' };
+const LinkIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M9 17H7a5 5 0 0 1 0-10h2" />
+  <path d="M15 7h2a5 5 0 0 1 0 10h-2" />
+  <line x1="8" y1="12" x2="16" y2="12" />
+</svg>`;
 
 export function WishListView() {
   const [activeItems, setActiveItems] = useState(null);
   const [archivedItems, setArchivedItems] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [name, setName] = useState('');
-  const [decisionType, setDecisionType] = useState('instant');
   const [budget, setBudget] = useState('');
+  const [productUrl, setProductUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
-  const [editDecisionType, setEditDecisionType] = useState('instant');
   const [editBudget, setEditBudget] = useState('');
+  const [editProductUrl, setEditProductUrl] = useState('');
 
   async function refresh() {
     const data = await listWishItems();
@@ -64,9 +68,10 @@ export function WishListView() {
     setSaving(true);
     try {
       const budgetAmount = budget.trim() === '' ? null : Number(budget);
-      await addWishItem(trimmed, decisionType, budgetAmount);
+      await addWishItem(trimmed, budgetAmount, productUrl.trim());
       setName('');
       setBudget('');
+      setProductUrl('');
       await refresh();
     } finally {
       setSaving(false);
@@ -90,8 +95,8 @@ export function WishListView() {
   function startEdit(item) {
     setEditingId(item.id);
     setEditName(item.name);
-    setEditDecisionType(item.decision_type);
     setEditBudget(item.budget_amount === null ? '' : String(item.budget_amount));
+    setEditProductUrl(item.product_url || '');
   }
 
   function cancelEdit() {
@@ -102,7 +107,7 @@ export function WishListView() {
     const trimmed = editName.trim();
     if (!trimmed) return;
     const budgetAmount = editBudget.trim() === '' ? null : Number(editBudget);
-    await updateWishItem(id, trimmed, editDecisionType, budgetAmount);
+    await updateWishItem(id, trimmed, budgetAmount, editProductUrl.trim());
     setEditingId(null);
     await refresh();
   }
@@ -121,11 +126,6 @@ export function WishListView() {
     return html`<div class="loading-hint">読み込み中…</div>`;
   }
 
-  const groups = [
-    { key: 'instant', label: DECISION_LABEL.instant, rows: activeItems.filter((i) => i.decision_type === 'instant') },
-    { key: 'encounter', label: DECISION_LABEL.encounter, rows: activeItems.filter((i) => i.decision_type === 'encounter') },
-  ];
-
   return html`
     <div>
       <form class="add-form" onSubmit=${handleAdd}>
@@ -138,18 +138,12 @@ export function WishListView() {
           />
           <button class="add-form__submit" type="submit" disabled=${saving || !name.trim()}>追加</button>
         </div>
-        <div class="toggle-row">
-          <button
-            type="button"
-            class=${`chip${decisionType === 'instant' ? ' is-selected' : ''}`}
-            onClick=${() => setDecisionType('instant')}
-          >即決型</button>
-          <button
-            type="button"
-            class=${`chip${decisionType === 'encounter' ? ' is-selected' : ''}`}
-            onClick=${() => setDecisionType('encounter')}
-          >出会い待ち型</button>
-        </div>
+        <input
+          type="url"
+          placeholder="商品ページのリンク(任意)"
+          value=${productUrl}
+          onInput=${(e) => setProductUrl(e.target.value)}
+        />
         <input
           type="number"
           placeholder="金額(任意)"
@@ -161,78 +155,69 @@ export function WishListView() {
 
       ${activeItems.length === 0
         ? html`<div class="empty-hint">まだ何も登録されていません。</div>`
-        : groups.map(
-            (group) =>
-              group.rows.length > 0 &&
-              html`
-                <div key=${group.key}>
-                  <div class="group-heading">${group.label}</div>
-                  <div class="item-list">
-                    ${group.rows.map(
-                      (item) =>
-                        editingId === item.id
-                          ? html`
-                              <div key=${item.id} class="item-row item-row--stack">
-                                <div class="edit-form">
-                                  <input
-                                    type="text"
-                                    value=${editName}
-                                    onInput=${(e) => setEditName(e.target.value)}
-                                  />
-                                  <div class="toggle-row">
-                                    <button
-                                      type="button"
-                                      class=${`chip${editDecisionType === 'instant' ? ' is-selected' : ''}`}
-                                      onClick=${() => setEditDecisionType('instant')}
-                                    >即決型</button>
-                                    <button
-                                      type="button"
-                                      class=${`chip${editDecisionType === 'encounter' ? ' is-selected' : ''}`}
-                                      onClick=${() => setEditDecisionType('encounter')}
-                                    >出会い待ち型</button>
-                                  </div>
-                                  <input
-                                    type="number"
-                                    placeholder="金額(任意)"
-                                    value=${editBudget}
-                                    onInput=${(e) => setEditBudget(e.target.value)}
-                                    min="0"
-                                  />
-                                  <div class="edit-actions">
-                                    <button class="edit-actions__delete" onClick=${() => handleDelete(item.id, false)}>削除</button>
-                                    <div class="edit-actions__right">
-                                      <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
-                                      <button class="edit-actions__save" onClick=${() => saveEdit(item.id)}>保存</button>
-                                    </div>
-                                  </div>
-                                </div>
+        : html`
+            <div class="item-list">
+              ${activeItems.map(
+                (item) =>
+                  editingId === item.id
+                    ? html`
+                        <div key=${item.id} class="item-row item-row--stack">
+                          <div class="edit-form">
+                            <input
+                              type="text"
+                              value=${editName}
+                              onInput=${(e) => setEditName(e.target.value)}
+                            />
+                            <input
+                              type="url"
+                              placeholder="商品ページのリンク(任意)"
+                              value=${editProductUrl}
+                              onInput=${(e) => setEditProductUrl(e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              placeholder="金額(任意)"
+                              value=${editBudget}
+                              onInput=${(e) => setEditBudget(e.target.value)}
+                              min="0"
+                            />
+                            <div class="edit-actions">
+                              <button class="edit-actions__delete" onClick=${() => handleDelete(item.id, false)}>削除</button>
+                              <div class="edit-actions__right">
+                                <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
+                                <button class="edit-actions__save" onClick=${() => saveEdit(item.id)}>保存</button>
                               </div>
-                            `
-                          : html`
-                              <div key=${item.id} class="item-row">
-                                <button class="check-btn" onClick=${() => handleToggleActive(item.id, false)} aria-label="手に入れた">
-                                  ${CheckIcon}
-                                </button>
-                                <div class="item-row__main">
-                                  <div class="item-row__name">${item.name}</div>
-                                  ${item.budget_amount !== null &&
-                                  html`<div class="item-row__budget">${formatBudget(item.budget_amount)}</div>`}
-                                </div>
-                                <div class="item-row__actions">
-                                  <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
-                                    ${EditIcon}
-                                  </button>
-                                  <button class="icon-btn" onClick=${() => handleDelete(item.id, false)} aria-label="削除">
-                                    ${TrashIcon}
-                                  </button>
-                                </div>
-                              </div>
-                            `
-                    )}
-                  </div>
-                </div>
-              `
-          )}
+                            </div>
+                          </div>
+                        </div>
+                      `
+                    : html`
+                        <div key=${item.id} class="item-row">
+                          <button class="check-btn" onClick=${() => handleToggleActive(item.id, false)} aria-label="手に入れた">
+                            ${CheckIcon}
+                          </button>
+                          <div class="item-row__main">
+                            <div class="item-row__name">${item.name}</div>
+                            ${item.budget_amount !== null &&
+                            html`<div class="item-row__budget">${formatBudget(item.budget_amount)}</div>`}
+                          </div>
+                          <div class="item-row__actions">
+                            ${item.product_url &&
+                            html`<a class="icon-btn" href=${item.product_url} target="_blank" rel="noopener noreferrer" aria-label="商品ページを開く">
+                              ${LinkIcon}
+                            </a>`}
+                            <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
+                              ${EditIcon}
+                            </button>
+                            <button class="icon-btn" onClick=${() => handleDelete(item.id, false)} aria-label="削除">
+                              ${TrashIcon}
+                            </button>
+                          </div>
+                        </div>
+                      `
+              )}
+            </div>
+          `}
 
       <div class="archive-toggle">
         <button onClick=${toggleArchivedView}>
@@ -259,9 +244,15 @@ export function WishListView() {
                           ${item.budget_amount !== null &&
                           html`<div class="item-row__budget">${formatBudget(item.budget_amount)}</div>`}
                         </div>
-                        <button class="icon-btn" onClick=${() => handleDelete(item.id, true)} aria-label="削除">
-                          ${TrashIcon}
-                        </button>
+                        <div class="item-row__actions">
+                          ${item.product_url &&
+                          html`<a class="icon-btn" href=${item.product_url} target="_blank" rel="noopener noreferrer" aria-label="商品ページを開く">
+                            ${LinkIcon}
+                          </a>`}
+                          <button class="icon-btn" onClick=${() => handleDelete(item.id, true)} aria-label="削除">
+                            ${TrashIcon}
+                          </button>
+                        </div>
                       </div>
                     `
                   )}

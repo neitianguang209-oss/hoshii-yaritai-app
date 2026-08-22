@@ -26,7 +26,6 @@ const TrashIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 export function EfficiencyView() {
   const [tasks, setTasks] = useState(null);
   const [title, setTitle] = useState('');
-  const [priority, setPriority] = useState('mid');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -52,9 +51,8 @@ export function EfficiencyView() {
     if (!trimmed || saving) return;
     setSaving(true);
     try {
-      await addEfficiencyTask(trimmed, priority);
+      await addEfficiencyTask(trimmed, 'mid');
       setTitle('');
-      setPriority('mid');
       await refresh();
     } finally {
       setSaving(false);
@@ -128,18 +126,6 @@ export function EfficiencyView() {
             onInput=${(e) => setTitle(e.target.value)}
           />
           <button class="add-form__submit" type="submit" disabled=${saving || !title.trim()}>追加</button>
-        </div>
-        <div class="toggle-row">
-          ${PRIORITY_ORDER.map(
-            (p) => html`
-              <button
-                key=${p}
-                type="button"
-                class=${`chip${priority === p ? ' is-selected' : ''}`}
-                onClick=${() => setPriority(p)}
-              >重要度: ${PRIORITY_LABEL[p]}</button>
-            `
-          )}
         </div>
       </form>
 
