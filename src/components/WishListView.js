@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import htm from 'htm';
-import { listWishItems, addWishItem, archiveWishItem, updateWishItem } from '../lib/api.js';
+import { listWishItems, addWishItem, archiveWishItem, updateWishItem, deleteWishItem } from '../lib/api.js';
 import { formatBudget } from '../lib/format.js';
 
 const html = htm.bind(React.createElement);
@@ -12,6 +12,14 @@ const CheckIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
   <path d="M12 20h9" />
   <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+</svg>`;
+
+const TrashIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 6h18" />
+  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+  <path d="M10 11v6" />
+  <path d="M14 11v6" />
 </svg>`;
 
 const DECISION_LABEL = { instant: '即決型', encounter: '出会い待ち型' };
@@ -97,6 +105,16 @@ export function WishListView() {
     await updateWishItem(id, trimmed, editDecisionType, budgetAmount);
     setEditingId(null);
     await refresh();
+  }
+
+  async function handleDelete(id, fromArchived) {
+    if (!window.confirm('このアイテムを削除しますか?(元に戻せません)')) return;
+    await deleteWishItem(id);
+    if (fromArchived) {
+      setArchivedItems((prev) => (prev ? prev.filter((i) => i.id !== id) : prev));
+    } else {
+      setActiveItems((prev) => (prev ? prev.filter((i) => i.id !== id) : prev));
+    }
   }
 
   if (activeItems === null) {
@@ -197,9 +215,14 @@ export function WishListView() {
                                   ${item.budget_amount !== null &&
                                   html`<div class="item-row__budget">${formatBudget(item.budget_amount)}</div>`}
                                 </div>
-                                <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
-                                  ${EditIcon}
-                                </button>
+                                <div class="item-row__actions">
+                                  <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
+                                    ${EditIcon}
+                                  </button>
+                                  <button class="icon-btn" onClick=${() => handleDelete(item.id, false)} aria-label="削除">
+                                    ${TrashIcon}
+                                  </button>
+                                </div>
                               </div>
                             `
                     )}
@@ -233,6 +256,9 @@ export function WishListView() {
                           ${item.budget_amount !== null &&
                           html`<div class="item-row__budget">${formatBudget(item.budget_amount)}</div>`}
                         </div>
+                        <button class="icon-btn" onClick=${() => handleDelete(item.id, true)} aria-label="削除">
+                          ${TrashIcon}
+                        </button>
                       </div>
                     `
                   )}

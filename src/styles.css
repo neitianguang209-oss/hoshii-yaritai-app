@@ -329,6 +329,12 @@ input, textarea, select {
   background: var(--divider);
 }
 
+.item-row__actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
 .icon-btn svg {
   width: 18px;
   height: 18px;

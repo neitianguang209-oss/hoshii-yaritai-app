@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import htm from 'htm';
-import { listEfficiencyTasks, addEfficiencyTask, updateEfficiencyStatus, updateEfficiencyTask } from '../lib/api.js';
+import { listEfficiencyTasks, addEfficiencyTask, updateEfficiencyStatus, updateEfficiencyTask, deleteEfficiencyTask } from '../lib/api.js';
 import { isWithinCurrentWeek } from '../lib/format.js';
 
 const html = htm.bind(React.createElement);
@@ -12,6 +12,14 @@ const STATUS_ORDER = ['not_started', 'in_progress', 'done'];
 const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
   <path d="M12 20h9" />
   <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+</svg>`;
+
+const TrashIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 6h18" />
+  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+  <path d="M10 11v6" />
+  <path d="M14 11v6" />
 </svg>`;
 
 export function EfficiencyView() {
@@ -72,6 +80,12 @@ export function EfficiencyView() {
     await updateEfficiencyTask(id, trimmed, editPriority);
     setEditingId(null);
     await refresh();
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('このタスクを削除しますか?(元に戻せません)')) return;
+    await deleteEfficiencyTask(id);
+    setTasks((prev) => (prev ? prev.filter((t) => t.id !== id) : prev));
   }
 
   if (tasks === null) {
@@ -165,9 +179,14 @@ export function EfficiencyView() {
                                       <span class=${`badge priority-${task.priority}`}>重要度 ${PRIORITY_LABEL[task.priority]}</span>
                                     </div>
                                   </div>
-                                  <button class="icon-btn" onClick=${() => startEdit(task)} aria-label="編集">
-                                    ${EditIcon}
-                                  </button>
+                                  <div class="item-row__actions">
+                                    <button class="icon-btn" onClick=${() => startEdit(task)} aria-label="編集">
+                                      ${EditIcon}
+                                    </button>
+                                    <button class="icon-btn" onClick=${() => handleDelete(task.id)} aria-label="削除">
+                                      ${TrashIcon}
+                                    </button>
+                                  </div>
                                 </div>
                                 <div class="status-select">
                                   ${STATUS_ORDER.map(

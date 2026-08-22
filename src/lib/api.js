@@ -68,6 +68,11 @@ export async function updateWishItem(id, name, decisionType, budgetAmount) {
   if (error) throw error;
 }
 
+export async function deleteWishItem(id) {
+  const { error } = await supabase.from("wish_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---- 効率化したいこと ----
 export async function listEfficiencyTasks() {
   const { data, error } = await supabase
@@ -92,5 +97,10 @@ export async function updateEfficiencyStatus(id, status) {
 
 export async function updateEfficiencyTask(id, title, priority) {
   const { error } = await supabase.from("efficiency_tasks").update({ title, priority }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteEfficiencyTask(id) {
+  const { error } = await supabase.from("efficiency_tasks").delete().eq("id", id);
   if (error) throw error;
 }
