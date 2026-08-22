@@ -9,6 +9,7 @@ const PRIORITY_LABEL = { high: '高', mid: '中', low: '低' };
 const STATUS_LABEL = { not_started: '未着手', in_progress: '進行中', done: '完了' };
 const STATUS_ORDER = ['not_started', 'in_progress', 'done'];
 const PRIORITY_ORDER = ['high', 'mid', 'low'];
+const TYPE_PRESETS = ['新規', '修正'];
 
 const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
   <path d="M12 20h9" />
@@ -27,15 +28,25 @@ const ChevronIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
   <polyline points="6 9 12 15 18 9" />
 </svg>`;
 
+function typeOptions(currentType, extraTypes) {
+  const all = [...TYPE_PRESETS, ...extraTypes.filter((t) => !TYPE_PRESETS.includes(t))];
+  return currentType && !all.includes(currentType) ? [...all, currentType] : all;
+}
+
 export function EfficiencyView() {
   const [tasks, setTasks] = useState(null);
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
+  const [typeTag, setTypeTag] = useState(TYPE_PRESETS[0]);
+  const [typeCustom, setTypeCustom] = useState('');
+  const [showTypeCustom, setShowTypeCustom] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editPriority, setEditPriority] = useState('mid');
   const [editDetail, setEditDetail] = useState('');
+  const [editType, setEditType] = useState('');
+  const [typeFilter, setTypeFilter] = useState('すべて');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [expandedIds, setExpandedIds] = useState(() => new Set());
@@ -55,12 +66,14 @@ export function EfficiencyView() {
   async function handleAdd(e) {
     e.preventDefault();
     const trimmed = title.trim();
-    if (!trimmed || saving) return;
+    const type = (showTypeCustom ? typeCustom : typeTag).trim();
+    if (!trimmed || !type || saving) return;
     setSaving(true);
     try {
-      await addEfficiencyTask(trimmed, 'mid', detail.trim());
+      await addEfficiencyTask(trimmed, 'mid', detail.trim(), type);
       setTitle('');
       setDetail('');
+      if (showTypeCustom) setTypeCustom('');
       await refresh();
     } finally {
       setSaving(false);
@@ -78,6 +91,14 @@ export function EfficiencyView() {
     setPriorityFilter('all');
   }
 
+  function selectTypeTag(tag) {
+    setTypeFilter(tag);
+    if (tag !== 'すべて') {
+      setTypeTag(tag);
+      setShowTypeCustom(false);
+    }
+  }
+
   function toggleExpanded(id) {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -92,6 +113,7 @@ export function EfficiencyView() {
     setEditTitle(task.title);
     setEditPriority(task.priority);
     setEditDetail(task.detail || '');
+    setEditType(task.task_type);
   }
 
   function cancelEdit() {
@@ -100,8 +122,9 @@ export function EfficiencyView() {
 
   async function saveEdit(id) {
     const trimmed = editTitle.trim();
-    if (!trimmed) return;
-    await updateEfficiencyTask(id, trimmed, editPriority, editDetail.trim());
+    const type = editType.trim();
+    if (!trimmed || !type) return;
+    await updateEfficiencyTask(id, trimmed, editPriority, editDetail.trim(), type);
     setEditingId(null);
     await refresh();
   }
@@ -118,12 +141,19 @@ export function EfficiencyView() {
 
   const weekCount = tasks.filter((t) => t.status === 'done' && isWithinCurrentWeek(t.completed_at)).length;
 
-  const statusTabs = [
-    { key: 'all', label: 'すべて', count: tasks.length },
-    ...STATUS_ORDER.map((s) => ({ key: s, label: STATUS_LABEL[s], count: tasks.filter((t) => t.status === s).length })),
+  const typeRowTags = [
+    ...TYPE_PRESETS,
+    ...Array.from(new Set(tasks.map((t) => t.task_type))).filter((t) => !TYPE_PRESETS.includes(t)),
   ];
 
-  let visibleTasks = statusFilter === 'all' ? tasks : tasks.filter((t) => t.status === statusFilter);
+  const typeFilteredTasks = typeFilter === 'すべて' ? tasks : tasks.filter((t) => t.task_type === typeFilter);
+
+  const statusTabs = [
+    { key: 'all', label: 'すべて', count: typeFilteredTasks.length },
+    ...STATUS_ORDER.map((s) => ({ key: s, label: STATUS_LABEL[s], count: typeFilteredTasks.filter((t) => t.status === s).length })),
+  ];
+
+  let visibleTasks = statusFilter === 'all' ? typeFilteredTasks : typeFilteredTasks.filter((t) => t.status === statusFilter);
   if (statusFilter !== 'all' && priorityFilter !== 'all') {
     visibleTasks = visibleTasks.filter((t) => t.priority === priorityFilter);
   }
@@ -152,6 +182,37 @@ export function EfficiencyView() {
           rows="2"
         ></textarea>
       </form>
+
+      <div class="chip-row" style=${{ marginBottom: '8px' }}>
+        <button
+          type="button"
+          class=${`chip${typeFilter === 'すべて' ? ' is-selected' : ''}`}
+          onClick=${() => selectTypeTag('すべて')}
+        >すべて</button>
+        ${typeRowTags.map(
+          (tag) => html`
+            <button
+              key=${tag}
+              type="button"
+              class=${`chip${!showTypeCustom && typeFilter === tag ? ' is-selected' : ''}`}
+              onClick=${() => selectTypeTag(tag)}
+            >${tag}</button>
+          `
+        )}
+        <button
+          type="button"
+          class=${`chip${showTypeCustom ? ' is-selected' : ''}`}
+          onClick=${() => setShowTypeCustom(true)}
+        >＋自由入力</button>
+      </div>
+      ${showTypeCustom &&
+      html`<input
+        type="text"
+        placeholder="種類を入力(例: 調査)"
+        value=${typeCustom}
+        onInput=${(e) => setTypeCustom(e.target.value)}
+        style=${{ marginBottom: '14px' }}
+      />`}
 
       ${tasks.length > 0 &&
       html`
@@ -210,6 +271,18 @@ export function EfficiencyView() {
                               onInput=${(e) => setEditDetail(e.target.value)}
                               rows="3"
                             ></textarea>
+                            <div class="chip-row">
+                              ${typeOptions(task.task_type, typeRowTags).map(
+                                (tag) => html`
+                                  <button
+                                    key=${tag}
+                                    type="button"
+                                    class=${`chip${editType === tag ? ' is-selected' : ''}`}
+                                    onClick=${() => setEditType(tag)}
+                                  >${tag}</button>
+                                `
+                              )}
+                            </div>
                             <div class="toggle-row">
                               ${PRIORITY_ORDER.map(
                                 (p) => html`
@@ -238,6 +311,7 @@ export function EfficiencyView() {
                             <div>
                               <div class=${`item-row__name${task.status === 'done' ? ' is-struck' : ''}`}>${task.title}</div>
                               <div class="item-row__meta">
+                                <span class="badge">${task.task_type}</span>
                                 <span class="badge">${STATUS_LABEL[task.status]}</span>
                                 <span class=${`badge priority-${task.priority}`}>重要度 ${PRIORITY_LABEL[task.priority]}</span>
                               </div>

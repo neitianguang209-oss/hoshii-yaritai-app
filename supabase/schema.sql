@@ -33,9 +33,13 @@ create table if not exists wish_items (
 );
 
 -- ---- 3. 効率化したいこと ----
+-- detailは長くなりがちな補足説明用(任意)。一覧では折りたたんで表示する。
+-- task_typeは「新規」/「修正」などの種類分け。プリセット以外も自由入力で追加できる想定。
 create table if not exists efficiency_tasks (
   id uuid primary key default gen_random_uuid(),
   title text not null,
+  detail text,
+  task_type text not null default '新規',
   status text not null default 'not_started' check (status in ('not_started', 'in_progress', 'done')),
   priority text not null default 'mid' check (priority in ('high', 'mid', 'low')),
   created_at timestamptz not null default now(),
