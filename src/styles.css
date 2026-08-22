@@ -1,0 +1,379 @@
+:root {
+  --bg: #FBF7F1;
+  --surface: #FFFFFF;
+  --text: #2B2420;
+  --text-sub: #948A7E;
+  --accent: #E3A272;
+  --accent-strong: #7A4A25;
+  --accent-soft: #F5E3D2;
+  --divider: #EDE6DA;
+  --done-bg: #F3EFE7;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "M PLUS Rounded 1c", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg);
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  color: inherit;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.app-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+/* ---- 下部ナビ ---- */
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: var(--surface);
+  border-top: 1px solid var(--divider);
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+
+.bottom-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bottom-nav__item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.bottom-nav__item svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* ---- 見出し ---- */
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 4px 0 14px;
+}
+
+.sub-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 4px;
+  border: 1px solid var(--divider);
+}
+
+.sub-tabs__item {
+  flex: 1;
+  text-align: center;
+  padding: 8px 6px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
+.sub-tabs__item.is-active {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+/* ---- 追加フォーム(低摩擦・常時表示) ---- */
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.add-form__row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-form input[type="text"],
+.add-form input[type="number"] {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  background: var(--bg);
+}
+
+.add-form__submit {
+  background: var(--accent);
+  color: #FFFFFF;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.add-form__submit:disabled {
+  background: var(--divider);
+  color: var(--text-sub);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  border: 1px solid var(--divider);
+  background: var(--bg);
+  color: var(--text-sub);
+}
+
+.chip.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #FFFFFF;
+}
+
+.toggle-row {
+  display: flex;
+  gap: 6px;
+}
+
+.toggle-row .chip {
+  flex: 1;
+  text-align: center;
+}
+
+/* ---- グループ見出し ---- */
+.group-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin: 18px 0 8px;
+  padding-left: 2px;
+}
+
+.group-heading:first-child {
+  margin-top: 0;
+}
+
+/* ---- アイテム一覧 ---- */
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.item-row.is-done {
+  background: var(--done-bg);
+}
+
+.item-row--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.item-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-row__name {
+  font-size: 15px;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.item-row__name.is-struck {
+  text-decoration: line-through;
+  color: var(--text-sub);
+}
+
+.item-row__meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.badge.priority-high { background: #F6DCCB; color: #8A3F13; }
+.badge.priority-mid { background: var(--accent-soft); color: var(--accent-strong); }
+.badge.priority-low { background: var(--done-bg); color: var(--text-sub); }
+
+.item-row__budget {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.icon-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--text-sub);
+}
+
+.icon-btn:active {
+  background: var(--divider);
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.check-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid var(--divider);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-btn.is-checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #FFFFFF;
+}
+
+.check-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.status-select {
+  display: flex;
+  gap: 4px;
+}
+
+.status-select .chip {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.empty-hint {
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 13px;
+  padding: 32px 12px;
+}
+
+.archive-toggle {
+  text-align: center;
+  margin: 16px 0 4px;
+}
+
+.archive-toggle button {
+  font-size: 13px;
+  color: var(--text-sub);
+  text-decoration: underline;
+  padding: 6px;
+}
+
+/* ---- 週次カウントバナー ---- */
+.week-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-soft);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.week-banner__label {
+  font-size: 12px;
+  color: var(--accent-strong);
+  font-weight: 500;
+}
+
+.week-banner__count {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent-strong);
+}
+
+.loading-hint {
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 13px;
+  padding: 40px 12px;
+}

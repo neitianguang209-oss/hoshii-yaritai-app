@@ -1,0 +1,75 @@
+import { supabase } from "./supabaseClient.js";
+
+// ---- 日用品ストック ----
+export async function listDailyStockItems() {
+  const { data, error } = await supabase
+    .from("daily_stock_items")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function addDailyStockItem(name, placeTag) {
+  const { error } = await supabase
+    .from("daily_stock_items")
+    .insert({ name, place_tag: placeTag });
+  if (error) throw error;
+}
+
+export async function archiveDailyStockItem(id) {
+  const { error } = await supabase
+    .from("daily_stock_items")
+    .update({ is_active: false })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// ---- 欲しいものリスト ----
+export async function listWishItems({ includeArchived = false } = {}) {
+  let query = supabase.from("wish_items").select("*").order("created_at", { ascending: true });
+  if (!includeArchived) query = query.eq("is_active", true);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
+export async function addWishItem(name, decisionType, budgetAmount) {
+  const { error } = await supabase.from("wish_items").insert({
+    name,
+    decision_type: decisionType,
+    budget_amount: budgetAmount ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function archiveWishItem(id, isActive) {
+  const { error } = await supabase
+    .from("wish_items")
+    .update({ is_active: isActive })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// ---- 効率化したいこと ----
+export async function listEfficiencyTasks() {
+  const { data, error } = await supabase
+    .from("efficiency_tasks")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function addEfficiencyTask(title, priority) {
+  const { error } = await supabase.from("efficiency_tasks").insert({ title, priority });
+  if (error) throw error;
+}
+
+export async function updateEfficiencyStatus(id, status) {
+  const patch = { status };
+  patch.completed_at = status === "done" ? new Date().toISOString() : null;
+  const { error } = await supabase.from("efficiency_tasks").update(patch).eq("id", id);
+  if (error) throw error;
+}
