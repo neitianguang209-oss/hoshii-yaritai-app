@@ -34,6 +34,11 @@ export async function updateDailyStockItem(id, name, genreTag) {
   if (error) throw error;
 }
 
+export async function deleteDailyStockItem(id) {
+  const { error } = await supabase.from("daily_stock_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---- 欲しいものリスト ----
 export async function listWishItems({ includeArchived = false } = {}) {
   let query = supabase.from("wish_items").select("*").order("created_at", { ascending: true });

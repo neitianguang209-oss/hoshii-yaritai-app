@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import htm from 'htm';
-import { listDailyStockItems, addDailyStockItem, archiveDailyStockItem, updateDailyStockItem } from '../lib/api.js';
+import { listDailyStockItems, addDailyStockItem, archiveDailyStockItem, updateDailyStockItem, deleteDailyStockItem } from '../lib/api.js';
 
 const html = htm.bind(React.createElement);
 
@@ -13,6 +13,14 @@ const CheckIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
   <path d="M12 20h9" />
   <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+</svg>`;
+
+const TrashIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 6h18" />
+  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+  <path d="M10 11v6" />
+  <path d="M14 11v6" />
 </svg>`;
 
 function tagOptions(currentTag) {
@@ -81,6 +89,13 @@ export function DailyStockView() {
     await updateDailyStockItem(id, trimmed, tag);
     setEditingId(null);
     await refresh();
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('このアイテムを削除しますか?(元に戻せません)')) return;
+    await deleteDailyStockItem(id);
+    setEditingId(null);
+    setItems((prev) => (prev ? prev.filter((i) => i.id !== id) : prev));
   }
 
   if (items === null) {
@@ -185,8 +200,11 @@ export function DailyStockView() {
                                   )}
                                 </div>
                                 <div class="edit-actions">
-                                  <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
-                                  <button class="edit-actions__save" onClick=${() => saveEdit(item.id)}>保存</button>
+                                  <button class="edit-actions__delete" onClick=${() => handleDelete(item.id)}>削除</button>
+                                  <div class="edit-actions__right">
+                                    <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
+                                    <button class="edit-actions__save" onClick=${() => saveEdit(item.id)}>保存</button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -199,9 +217,14 @@ export function DailyStockView() {
                               <div class="item-row__main">
                                 <div class="item-row__name">${item.name}</div>
                               </div>
-                              <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
-                                ${EditIcon}
-                              </button>
+                              <div class="item-row__actions">
+                                <button class="icon-btn" onClick=${() => startEdit(item)} aria-label="編集">
+                                  ${EditIcon}
+                                </button>
+                                <button class="icon-btn" onClick=${() => handleDelete(item.id)} aria-label="削除">
+                                  ${TrashIcon}
+                                </button>
+                              </div>
                             </div>
                           `
                   )}

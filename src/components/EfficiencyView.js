@@ -164,8 +164,11 @@ export function EfficiencyView() {
                                     )}
                                   </div>
                                   <div class="edit-actions">
-                                    <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
-                                    <button class="edit-actions__save" onClick=${() => saveEdit(task.id)}>保存</button>
+                                    <button class="edit-actions__delete" onClick=${() => handleDelete(task.id)}>削除</button>
+                                    <div class="edit-actions__right">
+                                      <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
+                                      <button class="edit-actions__save" onClick=${() => saveEdit(task.id)}>保存</button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

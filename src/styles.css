@@ -254,7 +254,13 @@ input, textarea, select {
 .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-actions__right {
+  display: flex;
+  gap: 8px;
 }
 
 .edit-actions button {
@@ -271,6 +277,11 @@ input, textarea, select {
 
 .edit-actions__cancel {
   color: var(--text-sub);
+}
+
+.edit-actions__delete {
+  color: var(--text-sub);
+  text-decoration: underline;
 }
 
 .item-row__main {
