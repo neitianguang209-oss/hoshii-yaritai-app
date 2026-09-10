@@ -4,6 +4,7 @@ import { BottomNav } from './components/BottomNav.js';
 import { DailyStockView } from './components/DailyStockView.js';
 import { WishListView } from './components/WishListView.js';
 import { EfficiencyView } from './components/EfficiencyView.js';
+import { AppHeaderTools } from './components/AppHeaderTools.js';
 
 const html = htm.bind(React.createElement);
 
@@ -14,6 +15,7 @@ export function App() {
   return html`
     <div class="app">
       <div class="app-body">
+        <${AppHeaderTools} />
         ${tab === 'wants'
           ? html`
               <h1 class="page-title">欲しいもの</h1>

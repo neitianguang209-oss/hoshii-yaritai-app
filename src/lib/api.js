@@ -1,14 +1,17 @@
 import { supabase } from "./supabaseClient.js";
+import { withCache } from "./cache.js";
 
 // ---- 日用品ストック ----
 export async function listDailyStockItems() {
-  const { data, error } = await supabase
-    .from("daily_stock_items")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return data;
+  return withCache("daily_stock_items", async () => {
+    const { data, error } = await supabase
+      .from("daily_stock_items")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function addDailyStockItem(name, genreTag) {
@@ -41,11 +44,15 @@ export async function deleteDailyStockItem(id) {
 
 // ---- 欲しいものリスト ----
 export async function listWishItems({ includeArchived = false } = {}) {
-  let query = supabase.from("wish_items").select("*").order("created_at", { ascending: true });
-  if (!includeArchived) query = query.eq("is_active", true);
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
+  // アーカイブ込みの一覧は控えを分けて持つ(表示内容が違うため)
+  const key = includeArchived ? "wish_items_all" : "wish_items";
+  return withCache(key, async () => {
+    let query = supabase.from("wish_items").select("*").order("created_at", { ascending: true });
+    if (!includeArchived) query = query.eq("is_active", true);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function addWishItem(name, budgetAmount, productUrl) {
@@ -80,12 +87,14 @@ export async function deleteWishItem(id) {
 
 // ---- 効率化したいこと ----
 export async function listEfficiencyTasks() {
-  const { data, error } = await supabase
-    .from("efficiency_tasks")
-    .select("*")
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return data;
+  return withCache("efficiency_tasks", async () => {
+    const { data, error } = await supabase
+      .from("efficiency_tasks")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function addEfficiencyTask(title, priority, detail, taskType) {

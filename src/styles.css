@@ -480,3 +480,30 @@ input, textarea, select {
   font-size: 13px;
   padding: 40px 12px;
 }
+
+/* 画面右上の道具(書き出し・オフライン表示) */
+.header-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.header-tools__btn {
+  border: 1px solid var(--border, #e2e2e6);
+  background: #fff;
+  color: var(--muted, #6b7280);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.header-tools__btn:active { background: #f3f4f6; }
+.header-tools__offline {
+  font-size: 11px;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 999px;
+  padding: 4px 10px;
+}

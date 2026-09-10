@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hoshii-yaritai-v11';
+const CACHE_NAME = 'hoshii-yaritai-v12';
 // self.registration.scope 基準の相対パス（サブパス配信のGitHub Pages等でも動くように）
 const APP_SHELL = [
   './',
@@ -11,10 +11,12 @@ const APP_SHELL = [
   './src/lib/supabaseClient.js',
   './src/lib/api.js',
   './src/lib/format.js',
+  './src/lib/cache.js',
   './src/components/BottomNav.js',
   './src/components/DailyStockView.js',
   './src/components/WishListView.js',
   './src/components/EfficiencyView.js',
+  './src/components/AppHeaderTools.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-180.png',
