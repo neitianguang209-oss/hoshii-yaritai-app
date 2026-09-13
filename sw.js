@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hoshii-yaritai-v12';
+const CACHE_NAME = 'hoshii-yaritai-v13';
 // self.registration.scope 基準の相対パス（サブパス配信のGitHub Pages等でも動くように）
 const APP_SHELL = [
   './',

@@ -5,10 +5,10 @@ import { isWithinCurrentWeek } from '../lib/format.js';
 
 const html = htm.bind(React.createElement);
 
-const PRIORITY_LABEL = { high: '高', mid: '中', low: '低' };
 const STATUS_LABEL = { not_started: '未着手', in_progress: '進行中', done: '完了' };
 const STATUS_ORDER = ['not_started', 'in_progress', 'done'];
-const PRIORITY_ORDER = ['high', 'mid', 'low'];
+// 一覧で見せる順番(手を付けているものを上に)。完了は「完了を見る」を開いた時だけ表示する
+const OPEN_SECTIONS = ['in_progress', 'not_started'];
 const TYPE_PRESETS = ['新規', '修正'];
 
 const EditIcon = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -43,12 +43,10 @@ export function EfficiencyView() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
-  const [editPriority, setEditPriority] = useState('mid');
   const [editDetail, setEditDetail] = useState('');
   const [editType, setEditType] = useState('');
   const [typeFilter, setTypeFilter] = useState('すべて');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [showDone, setShowDone] = useState(false);
   const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   async function refresh() {
@@ -86,11 +84,6 @@ export function EfficiencyView() {
     await refresh();
   }
 
-  function selectStatusFilter(status) {
-    setStatusFilter(status);
-    setPriorityFilter('all');
-  }
-
   function selectTypeTag(tag) {
     setTypeFilter(tag);
     if (tag !== 'すべて') {
@@ -111,7 +104,6 @@ export function EfficiencyView() {
   function startEdit(task) {
     setEditingId(task.id);
     setEditTitle(task.title);
-    setEditPriority(task.priority);
     setEditDetail(task.detail || '');
     setEditType(task.task_type);
   }
@@ -120,11 +112,12 @@ export function EfficiencyView() {
     setEditingId(null);
   }
 
-  async function saveEdit(id) {
+  async function saveEdit(task) {
     const trimmed = editTitle.trim();
     const type = editType.trim();
     if (!trimmed || !type) return;
-    await updateEfficiencyTask(id, trimmed, editPriority, editDetail.trim(), type);
+    // 重要度は画面から廃止したので、DBに残っている値はそのまま据え置く
+    await updateEfficiencyTask(task.id, trimmed, task.priority, editDetail.trim(), type);
     setEditingId(null);
     await refresh();
   }
@@ -147,15 +140,92 @@ export function EfficiencyView() {
   ];
 
   const typeFilteredTasks = typeFilter === 'すべて' ? tasks : tasks.filter((t) => t.task_type === typeFilter);
+  const openCount = typeFilteredTasks.filter((t) => t.status !== 'done').length;
+  const doneTasks = typeFilteredTasks
+    .filter((t) => t.status === 'done')
+    .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
 
-  const statusTabs = [
-    { key: 'all', label: 'すべて', count: typeFilteredTasks.length },
-    ...STATUS_ORDER.map((s) => ({ key: s, label: STATUS_LABEL[s], count: typeFilteredTasks.filter((t) => t.status === s).length })),
-  ];
+  function renderTask(task) {
+    if (editingId === task.id) {
+      return html`
+        <div key=${task.id} class="item-row item-row--stack">
+          <div class="edit-form">
+            <input
+              type="text"
+              value=${editTitle}
+              onInput=${(e) => setEditTitle(e.target.value)}
+            />
+            <textarea
+              placeholder="詳細(任意)"
+              value=${editDetail}
+              onInput=${(e) => setEditDetail(e.target.value)}
+              rows="3"
+            ></textarea>
+            <div class="chip-row">
+              ${typeOptions(task.task_type, typeRowTags).map(
+                (tag) => html`
+                  <button
+                    key=${tag}
+                    type="button"
+                    class=${`chip${editType === tag ? ' is-selected' : ''}`}
+                    onClick=${() => setEditType(tag)}
+                  >${tag}</button>
+                `
+              )}
+            </div>
+            <div class="edit-actions">
+              <button class="edit-actions__delete" onClick=${() => handleDelete(task.id)}>削除</button>
+              <div class="edit-actions__right">
+                <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
+                <button class="edit-actions__save" onClick=${() => saveEdit(task)}>保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
-  let visibleTasks = statusFilter === 'all' ? typeFilteredTasks : typeFilteredTasks.filter((t) => t.status === statusFilter);
-  if (statusFilter !== 'all' && priorityFilter !== 'all') {
-    visibleTasks = visibleTasks.filter((t) => t.priority === priorityFilter);
+    const isDone = task.status === 'done';
+    return html`
+      <div key=${task.id} class=${`item-row item-row--stack${isDone ? ' is-done' : ''}`}>
+        <div class="item-row__main" style=${{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+          <div>
+            <div class=${`item-row__name${isDone ? ' is-struck' : ''}`}>${task.title}</div>
+            <div class="item-row__meta">
+              <span class="badge">${task.task_type}</span>
+            </div>
+          </div>
+          <div class="item-row__actions">
+            <button class="icon-btn" onClick=${() => startEdit(task)} aria-label="編集">
+              ${EditIcon}
+            </button>
+            <button class="icon-btn" onClick=${() => handleDelete(task.id)} aria-label="削除">
+              ${TrashIcon}
+            </button>
+          </div>
+        </div>
+        ${task.detail &&
+        html`
+          <button class="detail-toggle" onClick=${() => toggleExpanded(task.id)}>
+            <span class=${`detail-toggle__icon${expandedIds.has(task.id) ? ' is-open' : ''}`}>${ChevronIcon}</span>
+            ${expandedIds.has(task.id) ? '詳細を閉じる' : '詳細を見る'}
+          </button>
+        `}
+        ${task.detail && expandedIds.has(task.id) &&
+        html`<div class="item-row__detail">${task.detail}</div>`}
+        <div class="status-select">
+          ${STATUS_ORDER.map(
+            (s) => html`
+              <button
+                key=${s}
+                class=${`chip${task.status === s ? ' is-selected' : ''}`}
+                onClick=${() => handleStatusChange(task.id, s)}
+              >${STATUS_LABEL[s]}</button>
+            `
+          )}
+        </div>
+      </div>
+    `;
   }
 
   return html`
@@ -183,7 +253,7 @@ export function EfficiencyView() {
         ></textarea>
       </form>
 
-      <div class="chip-row" style=${{ marginBottom: '8px' }}>
+      <div class="chip-row" style=${{ marginBottom: '14px' }}>
         <button
           type="button"
           class=${`chip${typeFilter === 'すべて' ? ' is-selected' : ''}`}
@@ -214,142 +284,37 @@ export function EfficiencyView() {
         style=${{ marginBottom: '14px' }}
       />`}
 
-      ${tasks.length > 0 &&
-      html`
-        <div class="chip-row" style=${{ marginBottom: '8px' }}>
-          ${statusTabs.map(
-            (tab) => html`
-              <button
-                key=${tab.key}
-                class=${`chip${statusFilter === tab.key ? ' is-selected' : ''}`}
-                onClick=${() => selectStatusFilter(tab.key)}
-              >${tab.label}(${tab.count})</button>
-            `
-          )}
-        </div>
-      `}
-
-      ${statusFilter !== 'all' &&
-      html`
-        <div class="chip-row" style=${{ marginBottom: '14px' }}>
-          <button
-            class=${`chip${priorityFilter === 'all' ? ' is-selected' : ''}`}
-            onClick=${() => setPriorityFilter('all')}
-          >すべて</button>
-          ${PRIORITY_ORDER.map(
-            (p) => html`
-              <button
-                key=${p}
-                class=${`chip${priorityFilter === p ? ' is-selected' : ''}`}
-                onClick=${() => setPriorityFilter(p)}
-              >重要度: ${PRIORITY_LABEL[p]}</button>
-            `
-          )}
-        </div>
-      `}
-
       ${tasks.length === 0
         ? html`<div class="empty-hint">まだ何も登録されていません。</div>`
-        : visibleTasks.length === 0
-        ? html`<div class="empty-hint">該当するタスクはありません。</div>`
-        : html`
-            <div class="item-list">
-              ${visibleTasks.map(
-                (task) =>
-                  editingId === task.id
-                    ? html`
-                        <div key=${task.id} class="item-row item-row--stack">
-                          <div class="edit-form">
-                            <input
-                              type="text"
-                              value=${editTitle}
-                              onInput=${(e) => setEditTitle(e.target.value)}
-                            />
-                            <textarea
-                              placeholder="詳細(任意)"
-                              value=${editDetail}
-                              onInput=${(e) => setEditDetail(e.target.value)}
-                              rows="3"
-                            ></textarea>
-                            <div class="chip-row">
-                              ${typeOptions(task.task_type, typeRowTags).map(
-                                (tag) => html`
-                                  <button
-                                    key=${tag}
-                                    type="button"
-                                    class=${`chip${editType === tag ? ' is-selected' : ''}`}
-                                    onClick=${() => setEditType(tag)}
-                                  >${tag}</button>
-                                `
-                              )}
-                            </div>
-                            <div class="toggle-row">
-                              ${PRIORITY_ORDER.map(
-                                (p) => html`
-                                  <button
-                                    key=${p}
-                                    type="button"
-                                    class=${`chip${editPriority === p ? ' is-selected' : ''}`}
-                                    onClick=${() => setEditPriority(p)}
-                                  >重要度: ${PRIORITY_LABEL[p]}</button>
-                                `
-                              )}
-                            </div>
-                            <div class="edit-actions">
-                              <button class="edit-actions__delete" onClick=${() => handleDelete(task.id)}>削除</button>
-                              <div class="edit-actions__right">
-                                <button class="edit-actions__cancel" onClick=${cancelEdit}>キャンセル</button>
-                                <button class="edit-actions__save" onClick=${() => saveEdit(task.id)}>保存</button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      `
-                    : html`
-                        <div key=${task.id} class=${`item-row item-row--stack${task.status === 'done' ? ' is-done' : ''}`}>
-                          <div class="item-row__main" style=${{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                            <div>
-                              <div class=${`item-row__name${task.status === 'done' ? ' is-struck' : ''}`}>${task.title}</div>
-                              <div class="item-row__meta">
-                                <span class="badge">${task.task_type}</span>
-                                <span class="badge">${STATUS_LABEL[task.status]}</span>
-                                <span class=${`badge priority-${task.priority}`}>重要度 ${PRIORITY_LABEL[task.priority]}</span>
-                              </div>
-                            </div>
-                            <div class="item-row__actions">
-                              <button class="icon-btn" onClick=${() => startEdit(task)} aria-label="編集">
-                                ${EditIcon}
-                              </button>
-                              <button class="icon-btn" onClick=${() => handleDelete(task.id)} aria-label="削除">
-                                ${TrashIcon}
-                              </button>
-                            </div>
-                          </div>
-                          ${task.detail &&
-                          html`
-                            <button class="detail-toggle" onClick=${() => toggleExpanded(task.id)}>
-                              <span class=${`detail-toggle__icon${expandedIds.has(task.id) ? ' is-open' : ''}`}>${ChevronIcon}</span>
-                              ${expandedIds.has(task.id) ? '詳細を閉じる' : '詳細を見る'}
-                            </button>
-                          `}
-                          ${task.detail && expandedIds.has(task.id) &&
-                          html`<div class="item-row__detail">${task.detail}</div>`}
-                          <div class="status-select">
-                            ${STATUS_ORDER.map(
-                              (s) => html`
-                                <button
-                                  key=${s}
-                                  class=${`chip${task.status === s ? ' is-selected' : ''}`}
-                                  onClick=${() => handleStatusChange(task.id, s)}
-                                >${STATUS_LABEL[s]}</button>
-                              `
-                            )}
-                          </div>
-                        </div>
-                      `
-              )}
-            </div>
-          `}
+        : openCount === 0
+        ? html`<div class="empty-hint">やり残しはありません。</div>`
+        : OPEN_SECTIONS.map((status) => {
+            const rows = typeFilteredTasks.filter((t) => t.status === status);
+            if (rows.length === 0) return null;
+            return html`
+              <div key=${status}>
+                <div class="group-heading">${STATUS_LABEL[status]}(${rows.length})</div>
+                <div class="item-list">${rows.map(renderTask)}</div>
+              </div>
+            `;
+          })}
+
+      ${doneTasks.length > 0 &&
+      html`
+        <div class="archive-toggle">
+          <button onClick=${() => setShowDone((v) => !v)}>
+            ${showDone ? '完了を閉じる' : `完了したものを見る(${doneTasks.length})`}
+          </button>
+        </div>
+      `}
+
+      ${showDone && doneTasks.length > 0 &&
+      html`
+        <div>
+          <div class="group-heading">完了</div>
+          <div class="item-list">${doneTasks.map(renderTask)}</div>
+        </div>
+      `}
     </div>
   `;
 }
