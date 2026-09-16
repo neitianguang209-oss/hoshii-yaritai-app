@@ -1,46 +1,57 @@
-# PWAアイコン生成（Node/Python不要、.NET System.Drawing のみ使用）
+﻿# PWAアイコン生成（Node/Python不要、.NET System.Drawing のみ使用）
 # 使い方: powershell -ExecutionPolicy Bypass -File generate-icons.ps1
+# 読書記録・思考メモ・ほしい/やりたい・就活選考管理の4つで
+# 角丸の形・余白・記号の太さを揃え、色と中の記号だけ変えている。
 Add-Type -AssemblyName System.Drawing
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$accent = [System.Drawing.Color]::FromArgb(255, 0xE3, 0xA2, 0x72)
-$accentStrong = [System.Drawing.Color]::FromArgb(255, 0x7A, 0x4A, 0x25)
+
+function P([single]$x, [single]$y) { New-Object System.Drawing.PointF($x, $y) }
+
+function RoundRect($x, $y, $w, $h, $r) {
+  $p = New-Object System.Drawing.Drawing2D.GraphicsPath
+  $d = $r * 2
+  $p.AddArc($x, $y, $d, $d, 180, 90)
+  $p.AddArc($x + $w - $d, $y, $d, $d, 270, 90)
+  $p.AddArc($x + $w - $d, $y + $h - $d, $d, $d, 0, 90)
+  $p.AddArc($x, $y + $h - $d, $d, $d, 90, 90)
+  $p.CloseFigure()
+  return $p
+}
+
+$bg = [System.Drawing.Color]::FromArgb(255, 0xE3, 0xA2, 0x72)
+$fg = [System.Drawing.Color]::FromArgb(255, 0xFF, 0xFF, 0xFF)
+
+function Draw-Symbol($g, $size, $brush, $bgBrush) {
+  # 星（欲しい・やりたいの「憧れ」）。元の絵柄を引き継ぎ、白にして小さくても見えるようにした
+  $cx = $size / 2.0
+  $cy = $size * 0.505
+  $outerR = $size * 0.30
+  $innerR = $size * 0.132
+  $pts = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+  for ($i = 0; $i -lt 10; $i++) {
+    $r = if ($i % 2 -eq 0) { $outerR } else { $innerR }
+    $angle = (-90 + $i * 36) * [Math]::PI / 180
+    $pts.Add((P ($cx + $r * [Math]::Cos($angle)) ($cy + $r * [Math]::Sin($angle))))
+  }
+  $g.FillPolygon($brush, $pts.ToArray())
+}
 
 function New-Icon([int]$size, [string]$path, [bool]$square) {
   $bmp = New-Object System.Drawing.Bitmap($size, $size)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 
-  $bgBrush = New-Object System.Drawing.SolidBrush($accent)
+  $bgBrush = New-Object System.Drawing.SolidBrush($bg)
   if ($square) {
+    # iOSのホーム画面は自分で角を丸めるので、apple-touch-icon用は四角のまま
     $g.FillRectangle($bgBrush, 0, 0, $size, $size)
   } else {
-    $radius = [int]($size * 0.22)
-    $path2 = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $d = $radius * 2
-    $path2.AddArc(0, 0, $d, $d, 180, 90)
-    $path2.AddArc($size - $d, 0, $d, $d, 270, 90)
-    $path2.AddArc($size - $d, $size - $d, $d, $d, 0, 90)
-    $path2.AddArc(0, $size - $d, $d, $d, 90, 90)
-    $path2.CloseFigure()
-    $g.FillPath($bgBrush, $path2)
+    $g.FillPath($bgBrush, (RoundRect 0 0 $size $size ([int]($size * 0.22))))
   }
 
-  # 中央に星形（欲しい/やりたいの「憧れ」を表すシンプルな図形）
-  $starBrush = New-Object System.Drawing.SolidBrush($accentStrong)
-  $cx = $size / 2.0
-  $cy = $size / 2.0
-  $outerR = $size * 0.30
-  $innerR = $size * 0.13
-  $points = New-Object System.Collections.Generic.List[System.Drawing.PointF]
-  for ($i = 0; $i -lt 10; $i++) {
-    $r = if ($i % 2 -eq 0) { $outerR } else { $innerR }
-    $angle = (-90 + $i * 36) * [Math]::PI / 180
-    $x = $cx + $r * [Math]::Cos($angle)
-    $y = $cy + $r * [Math]::Sin($angle)
-    $points.Add((New-Object System.Drawing.PointF($x, $y)))
-  }
-  $g.FillPolygon($starBrush, $points.ToArray())
+  $fgBrush = New-Object System.Drawing.SolidBrush($fg)
+  Draw-Symbol $g ([single]$size) $fgBrush $bgBrush
 
   $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
   $g.Dispose()
